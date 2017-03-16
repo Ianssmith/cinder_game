@@ -47,7 +47,7 @@ public:
     
     //// game vars v
     
-    ci::TextBox txtbox;
+    ci::TextBox txtbox = TextBox().alignment( TextBox::CENTER ).text( "Enter word: ");
     string answer;      //answer chosen by judger
     int answerLength;
     int player = 0;     //player turn tracker
@@ -62,7 +62,7 @@ public:
     bool win = 0;       //boolean flag for players win or lose
     const std::string intro = "Judgment day, pick a word for the defendant: ";      //introductory text for judger
     int numPlayers = 0;
-    
+    gl::TextureRef		tex;
     
     ////// Listener vvvv
     osc::Listener listener;
@@ -76,17 +76,91 @@ public:
     ////// Listener class ^^^^
 };
 
+void oscGameApp::setup()
+{
+    //listener setup vvv
+    listener.setup(3000);
+    
+    
+    //sender setup vvv
+    // assume the broadcast address is this machine's IP address but with 255 as the final value
+    // so to multicast from IP 192.168.1.100, the host should be 192.168.1.255
 
+    //host = System::getIpAddress();
+    host = "192.168.1.139";
+    if( host.rfind( '.' ) != string::npos )
+        host.replace( host.rfind( '.' ) + 1, 3, "255" );
+    sender.setup( host, port, 1 );
+    
+    txtbox.setAlignment(cinder::TextBox::CENTER);
+    txtbox.setSize(vec2(250,42));
+    txtbox.setColor(Color(0.0f,0.1f,0.6f));
+    //txtbox.setBackgroundColor(Color(0.0,0.1,0.6));
+    //txtbox.text(
+    tex = gl::Texture2d::create(txtbox.render());
+}
+
+void oscGameApp::update()
+{
+    //// Listen for incoming messages
+    recieveChar();
+}
+
+void oscGameApp::keyUp(KeyEvent event)
+{
+    if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 0)
+    {
+        osc::Message message;
+        message.setAddress("/cinder/osc/1");
+        //message.addFloatArg(positionX);
+        makeMessage(message);
+        cout<<&message<<endl;
+        message.setRemoteEndpoint(host, port);
+        sender.sendMessage(message);
+    }
+    
+    if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 1)
+    {
+        answer = txtbox.getText();
+        cout << answer << endl;
+        setAnswer();
+    }
+    
+}
+
+
+void oscGameApp::mouseMove( MouseEvent event )
+{
+}
+
+void oscGameApp::mouseDrag( MouseEvent event )
+{
+}
+
+void oscGameApp::draw()
+{
+    gl::clear();
+    gl::drawString(intro, vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
+    if(tex)
+    {
+        gl::draw(tex);
+    }
+    //gl::color( Color::gray( 0.5f ) );
+    //gl::drawSolidRect(Rectf(vec2(0), vec2(positionX * getWindowWidth(), getWindowHeight())));
+}
+
+
+
+//------
+//
+// game functions definitions
+//
+//------
 
 ////create a vector equal to the length of the answer and store a 'false' in each space
 void oscGameApp::setAnswer()
 {
     //answer = "test";
-    txtbox.setAlignment(cinder::TextBox::CENTER);
-    txtbox.setSize(vec2(250,42));
-    txtbox.setText("Enter word: ");
-    txtbox.setColor(Color(0.0f,0.1f,0.6f));
-    txtbox.setBackgroundColor(Color(0.0,0.1,0.6));
     //answer = inputBox.getInput();     place where judger word is received
     answerLength = answer.size();
     for(int i=0;i<answer.size();i++)
@@ -122,7 +196,7 @@ void oscGameApp::recieveChar()
         osc::Message inmsg;
         listener.getNextMessage(&inmsg);
         
-        if(inmsg.getAddress() == "/cinder/osc/1" &&
+        if(inmsg.getAddress() == "/hangman/1" &&
            inmsg.getNumArgs() == 2 &&
            inmsg.getArgType(0) == osc::TYPE_STRING &&
            inmsg.getArgType(1) == osc::TYPE_INT32)
@@ -209,67 +283,5 @@ void oscGameApp::compareAnswers()
        
 
 
-void oscGameApp::setup()
-{
-    //listener setup vvv
-    listener.setup(3000);
-    
-    
-    //sender setup vvv
-    // assume the broadcast address is this machine's IP address but with 255 as the final value
-    // so to multicast from IP 192.168.1.100, the host should be 192.168.1.255
-
-    //host = System::getIpAddress();
-    host = "192.168.1.139";
-    if( host.rfind( '.' ) != string::npos )
-        host.replace( host.rfind( '.' ) + 1, 3, "255" );
-    sender.setup( host, port, 1 );
-    setAnswer();
-}
-
-void oscGameApp::update()
-{
-    //// Listen for incoming messages
-    recieveChar();
-}
-
-void oscGameApp::keyUp(KeyEvent event)
-{
-    if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 0)
-    {
-        osc::Message message;
-        message.setAddress("/cinder/osc/1");
-        //message.addFloatArg(positionX);
-        makeMessage(message);
-        cout<<&message<<endl;
-        message.setRemoteEndpoint(host, port);
-        sender.sendMessage(message);
-    }
-    
-    if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 1)
-    {
-        answer = txtbox.getText();
-        cout << answer << endl;
-    }
-    
-}
-
-
-void oscGameApp::mouseMove( MouseEvent event )
-{
-}
-
-void oscGameApp::mouseDrag( MouseEvent event )
-{
-}
-
-void oscGameApp::draw()
-{
-    gl::clear();
-    gl::drawString(intro, vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
-    setAnswer();
-    //gl::color( Color::gray( 0.5f ) );
-    //gl::drawSolidRect(Rectf(vec2(0), vec2(positionX * getWindowWidth(), getWindowHeight())));
-}
 
 CINDER_APP( oscGameApp, RendererGl )
