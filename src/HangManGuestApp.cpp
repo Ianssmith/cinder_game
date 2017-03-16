@@ -28,10 +28,6 @@ class HangManGuestApp : public App {
     string tempAnswer; //receive from listener
     int bodypart;
     
-//    int lineNum;
-//    char letter = 'p';
-//    int letterPos;
-    
     
     osc::Listener 	listener;
 
@@ -129,7 +125,6 @@ void HangManGuestApp::draw()
     gl::drawSolidRect(Rectf(480, 440, 800, 600));
     
     drawMan();
-//    drawLine();
     drawAnswer();
     answer = modifyAnswer(tempAnswer);
     
