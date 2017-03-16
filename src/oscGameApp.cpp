@@ -17,6 +17,7 @@ public:
     
     int 		mMouseLocX;
     osc::Sender sender;
+    
     //std::string host;
     
     void setup();
@@ -45,20 +46,20 @@ public:
     void compareChar(string);
     void compareAnswers();
     void checkDead();
-    void makeMessage(osc::Message);
+    void makeMessage();
     
     //// game vars v
     
-	/// message vars
+    /// message vars
     int player = 0;     //player turn tracker
     int answerLength;
-	string currentAnswer;
-	string wrongAnswer;
+    string currentAnswer;
+    string wrongAnswer;
     int bodypart = 0;
     bool GO = 0;        //boolean flag for if game is over
     bool win = 0;       //boolean flag for players win or lose
-
-	/// host vars
+    
+    /// host vars
     ci::TextBox txtbox;
     string answer;      //answer chosen by judger
     const int maxGuesses = 9;
@@ -69,6 +70,8 @@ public:
     bool gameStart = 1;
     const std::string intro = "Judgment day, pick a word for the defendant: ";      //introductory text for judger
     int numPlayers = 0;
+    osc::Message message;
+    
     
     
     ////// Listener vvvv
@@ -82,13 +85,46 @@ public:
     
     ////// Listener class ^^^^
 };
+void oscGameApp::setup()
+{
+    //listener setup vvv
+    listener.setup(4000);
+    
+    setAnswer();
+    
+    //sender setup vvv
+    // assume the broadcast address is this machine's IP address but with 255 as the final value
+    // so to multicast from IP 192.168.1.100, the host should be 192.168.1.255
+    
+    //host = System::getIpAddress();
+    host = "149.31.138.40";
+    //    if( host.rfind( '.' ) != string::npos )
+    //        host.replace( host.rfind( '.' ) + 1, 3, "255" );
+    sender.setup( host, port, 1 );
+}
+
+void oscGameApp::update()
+{
+    //// Listen for incoming messages
+    recieveChar();
+}
+
+
+
+void oscGameApp::draw()
+{
+    gl::clear();
+    gl::drawString(intro, vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
+    //gl::color( Color::gray( 0.5f ) );
+    //gl::drawSolidRect(Rectf(vec2(0), vec2(positionX * getWindowWidth(), getWindowHeight())));
+}
 
 
 
 ////create a vector equal to the length of the answer and store a 'false' in each space
 void oscGameApp::setAnswer()
 {
-    //answer = "test";
+    answer = "test";
     txtbox.setAlignment(cinder::TextBox::CENTER);
     txtbox.setSize(vec2(250,42));
     txtbox.setText("Enter word: ");
@@ -105,18 +141,19 @@ void oscGameApp::setAnswer()
         numPlayers++;
         //app.onPlayerJoin(sendmsg());    place where we wait for and detect new players
     }
-	wrongAnswer = "";
+    wrongAnswer = "";
     gameStart = 0;
 }
 
 ////adds 1 to player number each time until it equals total players then reset to first player
 void oscGameApp::activatePlayer()
 {
-    player += 1;
     if (player > numPlayers)
     {
         player = 1;
     }
+    player += 1;
+    
 }
 
 
@@ -130,16 +167,23 @@ void oscGameApp::recieveChar()
         osc::Message inmsg;
         listener.getNextMessage(&inmsg);
         
-        //        if(inmsg.getAddress() == "/cinder/osc/1" &&
-        //           inmsg.getNumArgs() == 2 &&
-        //           inmsg.getArgType(0) == osc::TYPE_STRING &&
-        //           inmsg.getArgType(1) == osc::TYPE_INT32)
-        //        {
-        //            rLetter = inmsg.getArgAsString(0);
-        //            player = inmsg.getArgAsInt32(1);
-        //
-        //            letter = rLetter[0];
-        //        }
+        if(inmsg.getAddress() == "/cinder/osc/1" &&
+           inmsg.getNumArgs() == 2 &&
+           inmsg.getArgType(0) == osc::TYPE_STRING &&
+           inmsg.getArgType(1) == osc::TYPE_INT32)
+        {
+            rLetter = inmsg.getArgAsString(0);
+            player = inmsg.getArgAsInt32(1);
+            
+            letter = rLetter[0];
+        }else if(inmsg.getAddress() == "/AskID"){
+            player += 1;
+            message.setAddress("/SendID");
+            message.addIntArg(player);
+            message.setRemoteEndpoint(host, port);
+            sender.sendMessage(message);
+            
+        }
         
         cout << "here is running " << endl;
         player = inmsg.getArgAsInt32(0);
@@ -164,10 +208,11 @@ void oscGameApp::compareChar(string guess)
             correct = 1;
         }
     }
-	if(correct == 0)
-	{
-		wrongAnswer = wrongAnswer + guess[0];
-    //rLetter = letter;
+    if(correct == 0)
+    {
+        wrongAnswer = wrongAnswer + guess[0];
+        //rLetter = letter;
+    }
 }
 
 
@@ -199,68 +244,45 @@ void oscGameApp::checkDead()
 
 
 ////run through the above functions appending the generated values to a message for players
-void oscGameApp::makeMessage(osc::Message msg)
+void oscGameApp::makeMessage()
 {
     activatePlayer();
-    msg.addIntArg(player);
-    msg.addIntArg(answerLength);     //Use <- this variable to initialze the length of the boolean vector for the first time.
-    compareChar(letter);
-	currentAnswer = "";
+    message.addIntArg(player);
+    message.addIntArg(answerLength);     //Use <- this variable to initialze the length of the boolean vector for the first time.
+    compareChar(rLetter);
+    currentAnswer = "";
     //msg.addStringArg(rLetter);
     //msg.addIntArg(correct);
     for(int i=0;i<playerstatus.size();i++)
     {
-		currentAnswer = currentAnswer + playerstatus[i];
+        currentAnswer = currentAnswer + playerstatus[i];
         //msg.addIntArg(playerstatus[i]);
     }
-	msg.addStringArg(currentAnswer);
-	msg.addStringArg(wrongAnswer);
+    message.addStringArg(currentAnswer);
+    message.addStringArg(wrongAnswer);
     if(correct == 0)
     {
         bodypart += 1;
-        msg.addIntArg(bodypart);
+        message.addIntArg(bodypart);
     }
     compareAnswers();
-    msg.addIntArg(GO);
+    message.addIntArg(GO);
     if(GO == 1)
     {
-        msg.addIntArg(win);
+        message.addIntArg(win);
     }
 }
 
 
 
-void oscGameApp::setup()
-{
-    //listener setup vvv
-    listener.setup(4000);
-    
-    
-    //sender setup vvv
-    // assume the broadcast address is this machine's IP address but with 255 as the final value
-    // so to multicast from IP 192.168.1.100, the host should be 192.168.1.255
-    
-    //host = System::getIpAddress();
-    host = "149.31.138.40";
-    //    if( host.rfind( '.' ) != string::npos )
-    //        host.replace( host.rfind( '.' ) + 1, 3, "255" );
-    sender.setup( host, port, 1 );
-}
-
-void oscGameApp::update()
-{
-    //// Listen for incoming messages
-    recieveChar();
-}
 
 void oscGameApp::keyUp(KeyEvent event)
 {
     if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 0)
     {
-        osc::Message message;
         message.setAddress("/cinder/osc/1");
         //message.addFloatArg(positionX);
-        makeMessage(message);
+        makeMessage();
         //        cout<<m<<endl;
         message.setRemoteEndpoint(host, port);
         sender.sendMessage(message);
@@ -268,9 +290,9 @@ void oscGameApp::keyUp(KeyEvent event)
     
     if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 1)
     {
-        setAnswer();
-        answer = txtbox.getText();
-        cout << answer << endl;
+        //setAnswer();
+        //answer = txtbox.getText();
+        //cout << answer << endl;
     }
     
 }
@@ -284,12 +306,5 @@ void oscGameApp::mouseDrag( MouseEvent event )
 {
 }
 
-void oscGameApp::draw()
-{
-    gl::clear();
-    gl::drawString(intro, vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
-    //gl::color( Color::gray( 0.5f ) );
-    //gl::drawSolidRect(Rectf(vec2(0), vec2(positionX * getWindowWidth(), getWindowHeight())));
-}
 
 CINDER_APP( oscGameApp, RendererGl )
