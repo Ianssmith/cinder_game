@@ -4,6 +4,8 @@
 
 #include "OscListener.h"
 #include "cinder/app/RendererGl.h"
+#include <boost/algorithm/string/classification.hpp> 
+#include <boost/algorithm/string/split.hpp>
 
 using namespace ci;
 using namespace ci::app;
@@ -19,17 +21,20 @@ class HangManGuestApp : public App {
     void drawLine();
     void drawAnswer();
     void drawMan();
+    string modifyAnswer(string answer);
     
+    Font answerFont;
+    string answer; //what I draw
+    string tempAnswer; //receive from listener
     int bodypart;
-    char letter;
-    int letterPos;
+    
+//    int lineNum;
+//    char letter = 'p';
+//    int letterPos;
+    
     
     osc::Listener 	listener;
-    
-    std::array<gl::TextureRef, 9> mBodyPart;
 
-    
-   
     gl::TextureRef mBodyTex1;
     gl::TextureRef mBodyTex2;
     gl::TextureRef mBodyTex3;
@@ -45,18 +50,26 @@ class HangManGuestApp : public App {
     
 };
 
+string HangManGuestApp::modifyAnswer(string answer)
+{
+    string newAnswer;
+    for (int i = 0; i < answer.size(); i++) {
+        newAnswer = newAnswer + answer[i] + " ";
+    }
+    cout<<newAnswer<<endl;
+    return newAnswer;
+}
+
+
+void HangManGuestApp::drawAnswer()
+{
+    gl::drawString( answer, ci::vec2( 30.f, 200.f ),Color::black(),answerFont);
+}
 
 
 
 void HangManGuestApp::drawMan()
 {
-//    while( listener.hasWaitingMessages() ) {
-//        osc::Message message;
-//        listener.getNextMessage( &message );
-//        message.addIntArg(bodypart);
-//        
-//    }
-    
     try {
         mBodyTex1 = gl::Texture::create(loadImage(ci::app::loadAsset("body1.png")));
         mBodyTex2 = gl::Texture::create(loadImage(ci::app::loadAsset("body2.png")));
@@ -74,29 +87,23 @@ void HangManGuestApp::drawMan()
     std::array<gl::TextureRef, 9> mBodyPart = {mBodyTex1, mBodyTex2, mBodyTex3, mBodyTex4, mBodyTex5, mBodyTex6, mBodyTex7, mBodyTex8, mBodyTex9};
     
     // receive int bodypart
+    
     for (int i=0; i < bodypart; i++){
         gl::draw (mBodyPart[i],Rectf(525, 110, 675, 400));
-        cout << i << endl;
     }
 
-    
 }
 
-void HangManGuestApp::drawLine()
-{
-    
-}
-
-void HangManGuestApp::drawAnswer()
-{
-    
-}
 
 
 void HangManGuestApp::setup()
 {
     setWindowSize(800, 600);
+    answerFont = Font(loadAsset( "HelveticaNeueLTPro-Md.otf"), 80);
     
+    bodypart = 0;
+    tempAnswer = "abcd";
+ 
 }
 
 
@@ -122,7 +129,10 @@ void HangManGuestApp::draw()
     gl::drawSolidRect(Rectf(480, 440, 800, 600));
     
     drawMan();
-
+//    drawLine();
+    drawAnswer();
+    answer = modifyAnswer(tempAnswer);
+    
 }
 
 CINDER_APP( HangManGuestApp, RendererGl )
