@@ -42,26 +42,31 @@ public:
     void setAnswer();
     void activatePlayer();
     void recieveChar();
-    void compareChar(char);
+    void compareChar(string);
     void compareAnswers();
     void checkDead();
     void makeMessage(osc::Message);
     
     //// game vars v
     
+	/// message vars
+    int player = 0;     //player turn tracker
+    int answerLength;
+	string currentAnswer;
+	string wrongAnswer;
+    int bodypart = 0;
+    bool GO = 0;        //boolean flag for if game is over
+    bool win = 0;       //boolean flag for players win or lose
+
+	/// host vars
     ci::TextBox txtbox;
     string answer;      //answer chosen by judger
-    int answerLength;
-    int player = 0;     //player turn tracker
     const int maxGuesses = 9;
-    int bodypart = 0;
     char letter;        //letter guessed by player n
-    std::vector<bool> playerstatus;     //vector of boolean values to keep track of correct letters and if game is over
+    std::vector<char> playerstatus;     //vector of boolean values to keep track of correct letters and if game is over
     string rLetter;       //char to return to players if guess is incorrect(probably could just recycle the 'letter' variable
     bool correct;       //boolean flag for if the guess is correct
     bool gameStart = 1;
-    bool GO = 0;        //boolean flag for if game is over
-    bool win = 0;       //boolean flag for players win or lose
     const std::string intro = "Judgment day, pick a word for the defendant: ";      //introductory text for judger
     int numPlayers = 0;
     
@@ -93,13 +98,14 @@ void oscGameApp::setAnswer()
     answerLength = answer.size();
     for(int i=0;i<answer.size();i++)
     {
-        playerstatus.push_back(0);
+        playerstatus.push_back('_');
     }
     while(numPlayers < 2)
     {
         numPlayers++;
         //app.onPlayerJoin(sendmsg());    place where we wait for and detect new players
     }
+	wrongAnswer = "";
     gameStart = 0;
 }
 
@@ -147,17 +153,20 @@ void oscGameApp::recieveChar()
 ////loop through the answer and compare the guessed char to each one
 ////if they match change the corresponding vector boolean to 'true'
 ////and set correct flag
-void oscGameApp::compareChar(char guess)
+void oscGameApp::compareChar(string guess)
 {
     correct = 0;
     for(std::string::size_type i=0;i<answer.size();i++)
     {
-        if(answer[i] == guess)
+        if(answer[i] == guess[0])
         {
-            playerstatus[i] = 1;
+            playerstatus[i] = guess[0];
             correct = 1;
         }
     }
+	if(correct == 0)
+	{
+		wrongAnswer = wrongAnswer + guess[0];
     //rLetter = letter;
 }
 
@@ -166,7 +175,7 @@ void oscGameApp::compareChar(char guess)
 ////if all elements are true game over and players win
 void oscGameApp::compareAnswers()
 {
-    if(std::all_of(playerstatus.begin(), playerstatus.end(), [](int i){return i==0;}))
+    if(std::all_of(playerstatus.begin(), playerstatus.end(), [](int i){return i=='_';}))
     {
         GO = 0;
     }
@@ -193,15 +202,19 @@ void oscGameApp::checkDead()
 void oscGameApp::makeMessage(osc::Message msg)
 {
     activatePlayer();
-    msg.addIntArg(answerLength);     //Use <- this variable to initialze the length of the boolean vector for the first time.
     msg.addIntArg(player);
+    msg.addIntArg(answerLength);     //Use <- this variable to initialze the length of the boolean vector for the first time.
     compareChar(letter);
-    msg.addStringArg(rLetter);
-    msg.addIntArg(correct);
+	currentAnswer = "";
+    //msg.addStringArg(rLetter);
+    //msg.addIntArg(correct);
     for(int i=0;i<playerstatus.size();i++)
     {
-        msg.addIntArg(playerstatus[i]);
+		currentAnswer = currentAnswer + playerstatus[i];
+        //msg.addIntArg(playerstatus[i]);
     }
+	msg.addStringArg(currentAnswer);
+	msg.addStringArg(wrongAnswer);
     if(correct == 0)
     {
         bodypart += 1;
