@@ -51,6 +51,7 @@ public:
     int maxGuesses;
     char letter;        //letter guessed by player n
     std::vector<char> currentAnswer;     //vector of boolean values to keep track of correct letters and if game is over
+    string currentAnswerInString;
     string rLetter;       //char to return to players if guess is incorrect(probably could just recycle the 'letter' variable
     bool correct;       //boolean flag for if the guess is correct
     const std::string intro = "Judgment day, pick a word for the defendant: ";      //introductory text for judger
@@ -74,7 +75,7 @@ void testGameApp::setup()
     gameStart = 0;
     
     
-    answer = wrongAnswer = "";
+    answer = wrongAnswer = currentAnswerInString = "";
     
     setAnswer(); //initialize the answerLength and answer, currentAnswer[];
     
@@ -134,7 +135,7 @@ void testGameApp::update()
             string tempIP = inmsg.getArgAsString(0);
             numPlayers++;
             playerID ++;
-            message.setAddress("SendID");
+            message.setAddress("/cinder/osc");
             message.addIntArg(playerID);
             message.setRemoteEndpoint(tempIP, sendPort);
             sender.sendMessage(message);
@@ -234,13 +235,12 @@ void testGameApp::checkDead()
 ////run through the above functions appending the generated values to a message for players
 void testGameApp::makeMessage()
 {
-    //compareChar(rLetter);
-    //activatePlayer();   //switch players
-    message.setAddress("/result/");
+    message.clear();
+    message.setAddress("/cinder/osc");
     message.addIntArg(playerID);
     message.addIntArg(answerLength);     //Use <- this variable to initialze the length of the boolean vector for the first time.
     
-    string currentAnswerInString = "";
+    currentAnswerInString = "";
     for(int i=0;i<currentAnswer.size();i++)
     {
         currentAnswerInString += currentAnswer[i];
@@ -260,13 +260,24 @@ void testGameApp::makeMessage()
         message.addIntArg(win);
     }
     
-    cout << "Message is: " <<endl;
-    cout << "player ID: " << playerID << endl;
-    cout << "anwwerLength : " << answerLength <<endl;
-    cout << "current Answer String: " << currentAnswerInString <<endl;
-    cout << "wrong Answer: " << wrongAnswer <<endl;
-    cout << "bodyPart: " << bodypart<<endl;
-    cout << "game over? " << GO <<endl;
+    sender.sendMessage(message);
+    
+    for (int i = 0 ; i < message.getNumArgs(); i++) {
+        if (message.getArgType(i) == osc::TYPE_INT32) {
+            cout << "arg[" << i << "] is : " << message.getArgAsInt32(i)<<endl;
+        }
+        if (message.getArgType(i) == osc::TYPE_STRING) {
+            cout << "arg[" << i << "] is : " << message.getArgAsString(i) <<endl  ;
+        }
+    }
+    
+    //    cout << "Message is: " <<endl;
+    //    cout << "player ID: " << playerID << endl;
+    //    cout << "answerLength : " << answerLength <<endl;
+    //    cout << "current Answer String: " << currentAnswerInString <<endl;
+    //    cout << "wrong Answer: " << wrongAnswer <<endl;
+    //    cout << "bodyPart: " << bodypart<<endl;
+    //    cout << "game over? " << GO <<endl;
     cout << "--------------------------------------"<<endl;
     
 }
