@@ -42,6 +42,9 @@ class HangManGuestApp : public App {
     string tempRightAnswer; //raw answer receive from sender
     int bodypart;
     
+    int counter = 0;
+    osc::Message    mMessage;
+    
     inputArea   inputArea;
     wrongAnswer wrongAnswer;
     
@@ -66,7 +69,7 @@ void HangManGuestApp::setup()
     sender.setup(host,4000,true);
     
     osc::Message    askID;
-    askID.setAddress("/AskID/1");
+    askID.setAddress("/cinder/osc");
     askID.addStringArg(System::getIpAddress());
     sender.sendMessage(askID);
     
@@ -76,6 +79,7 @@ void HangManGuestApp::setup()
     bodypart = 0;
     bActivated = false;
     player = 0;
+    answerLength = 0;
     
     inputArea.setup();
     wrongAnswer.setup();
@@ -85,20 +89,34 @@ void HangManGuestApp::setup()
 void HangManGuestApp::update()
 {
     while (listener.hasWaitingMessages()) {
+        counter++;
+        cout << "counter is: " << counter <<endl;
         osc::Message    message;
         listener.getNextMessage(&message);
 
         if (player == 0) {
+            cout << "Arguments number: " << message.getNumArgs() <<endl;
             player = message.getArgAsInt32(0);
             cout<< "initialize player ID: " << player<< endl;
         }
-        else
+        
+        else if(player != 0)
         {
+            cout << "Arguments number: " << message.getNumArgs() <<endl;
+
             int tempId = message.getArgAsInt32(0);
+            cout << "recieve second msg" <<endl;
+            
+            for (int i = 0; i < message.getNumArgs(); i++) {
+                if(message.getArgType(i) == osc::TYPE_INT32)
+                    cout << "arg["<<i<<"] is : "<< message.getArgAsInt32(i) <<endl;
+                if(message.getArgType(i) == osc::TYPE_STRING)
+                    cout << "arg["<<i<<"] is : "<< message.getArgAsString(i)<<endl;
+
+            }
             
             if (tempId == player) {
                 cout<< "player ID: " << player<< endl;
-                
                 
                 answerLength = message.getArgAsInt32(1);
                 cout<<"answerLength is : " << answerLength <<endl;
@@ -121,6 +139,7 @@ void HangManGuestApp::update()
     }
     if (bActivated) {
         inputArea.enableTextField();
+        cout << "====="<< rightAnswer << endl;
     }
 }
 
@@ -180,11 +199,14 @@ void HangManGuestApp::draw()
     gl::color(ci::Color(0.6f,0.5f, 0.4f));
     gl::drawSolidRect(Rectf(480, 440, 800, 600));
     
-    drawMan();
-    drawAnswer();
+    
     inputArea.draw();
     wrongAnswer.draw();
     rightAnswer = modifyAnswer(tempRightAnswer);
+    
+    drawMan();
+    
+    drawAnswer();
     
 }
 
@@ -279,11 +301,19 @@ void HangManGuestApp::keyDown(KeyEvent event)
         }
         if (event.getCode() == KeyEvent::KEY_RETURN) {
             if (inputArea.getInputText() != "") {
-                osc::Message    mMessage;
-                mMessage.setAddress("/inputText");
+                mMessage.clear();
+                mMessage.setAddress("/cinder/osc");
                 mMessage.addStringArg(inputArea.getInputText());
+                mMessage.addIntArg(player);
                 sender.sendMessage(mMessage);
                 
+                for (int i = 0; i < mMessage.getNumArgs(); i++) {
+                    if(mMessage.getArgType(i) == osc::TYPE_INT32)
+                        cout << "arg["<<i<<"] is : "<< mMessage.getArgAsInt32(i) <<endl;
+                    if(mMessage.getArgType(i) == osc::TYPE_STRING)
+                        cout << "arg["<<i<<"] is : "<< mMessage.getArgAsString(i)<<endl;
+                    
+                }
                 bActivated = false;
                 inputArea.reset();
                 inputArea.disableTextField();

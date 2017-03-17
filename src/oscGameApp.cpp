@@ -51,7 +51,7 @@ public:
     int maxGuesses;
     char letter;        //letter guessed by player n
     std::vector<char> currentAnswer;     //vector of boolean values to keep track of correct letters and if game is over
-    string currentAnswerInString;
+    //string currentAnswerInString;
     string rLetter;       //char to return to players if guess is incorrect(probably could just recycle the 'letter' variable
     bool correct;       //boolean flag for if the guess is correct
     const std::string intro = "Judgment day, pick a word for the defendant: ";      //introductory text for judger
@@ -75,7 +75,7 @@ void testGameApp::setup()
     gameStart = 0;
     
     
-    answer = wrongAnswer = currentAnswerInString = "";
+    answer = wrongAnswer = "";
     
     setAnswer(); //initialize the answerLength and answer, currentAnswer[];
     
@@ -240,7 +240,7 @@ void testGameApp::makeMessage()
     message.addIntArg(playerID);
     message.addIntArg(answerLength);     //Use <- this variable to initialze the length of the boolean vector for the first time.
     
-    currentAnswerInString = "";
+    string currentAnswerInString = "";
     for(int i=0;i<currentAnswer.size();i++)
     {
         currentAnswerInString += currentAnswer[i];
