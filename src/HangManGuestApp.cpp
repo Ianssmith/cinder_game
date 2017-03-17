@@ -65,7 +65,7 @@ void HangManGuestApp::setup()
 {
     // initialize net connection---------------------
     listener.setup(3000); // listener port
-    host = "149.31.146.148"; // judge's IP
+    host = "149.31.207.68"; // judge's IP
     sender.setup(host,4000,true);
     
     osc::Message    askID;
@@ -121,8 +121,8 @@ void HangManGuestApp::update()
                 answerLength = message.getArgAsInt32(1);
                 cout<<"answerLength is : " << answerLength <<endl;
                 
-                rightAnswer = message.getArgAsString(2);
-                cout<<"rightAnswer is : " << rightAnswer <<endl;
+                tempRightAnswer = message.getArgAsString(2);
+                cout<<"rightAnswer is : " << tempRightAnswer <<endl;
                 
                 wrongAnswer.setWrongAnswers(message.getArgAsString(3));
                 cout<<"wrongAnswer is : " << wrongAnswer.getWrongAnswers() <<endl;
@@ -139,8 +139,10 @@ void HangManGuestApp::update()
     }
     if (bActivated) {
         inputArea.enableTextField();
-        cout << "====="<< rightAnswer << endl;
+//        cout << "====="<< rightAnswer << endl;
     }
+    
+    
 }
 
 string HangManGuestApp::modifyAnswer(string answer)
@@ -179,7 +181,6 @@ void HangManGuestApp::drawMan()
     std::array<gl::TextureRef, 9> mBodyPart = {mBodyTex1, mBodyTex2, mBodyTex3, mBodyTex4, mBodyTex5, mBodyTex6, mBodyTex7, mBodyTex8, mBodyTex9};
     
     // receive int bodypart
-    
     for (int i=0; i < bodypart; i++){
         gl::draw (mBodyPart[i],Rectf(525, 110, 675, 400));
     }
@@ -205,9 +206,7 @@ void HangManGuestApp::draw()
     rightAnswer = modifyAnswer(tempRightAnswer);
     
     drawMan();
-    
     drawAnswer();
-    
 }
 
 void HangManGuestApp::mouseDown(MouseEvent event)
