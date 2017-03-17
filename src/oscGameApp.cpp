@@ -12,13 +12,8 @@ using namespace std;
 
 
 
-class oscGameApp : public App {
+class testGameApp : public App {
 public:
-    
-    int 		mMouseLocX;
-    osc::Sender sender;
-    
-    //std::string host;
     
     void setup();
     void update();
@@ -27,102 +22,79 @@ public:
     void mouseDrag( MouseEvent event );
     void keyUp( KeyEvent event );
     
-    //osc::SenderTcp sender;
-    float 		positionX;
-    //const std::string host = "";
+    osc::Sender sender;
     std::string host;
-    const uint16_t port = 3000;
-    
-    const uint16_t newPort  = 4000;
-    
-    //void onSendError( asio::error_code error );
-    bool mIsConnected;
-    
-    //// game functions v
+    const uint16_t sendPort = 3000;
     
     void setAnswer();
     void activatePlayer();
-    void recieveChar();
     void compareChar(string);
     void compareAnswers();
     void checkDead();
     void makeMessage();
     
-    //// game vars v
-    
     /// message vars
-    int player = 0;     //player turn tracker
+    int playerID;     //player turn tracker
+    int numPlayers;
+    string answer;      //answer chosen by judger
     int answerLength;
-    string currentAnswer;
+    //string currentAnswer;
     string wrongAnswer;
-    int bodypart = 0;
-    bool GO = 0;        //boolean flag for if game is over
-    bool win = 0;       //boolean flag for players win or lose
+    
+    int bodypart;
+    bool gameStart;
+    bool GO;        //boolean flag for if game is over
+    bool win;       //boolean flag for players win or lose
     
     /// host vars
     ci::TextBox txtbox;
-    string answer;      //answer chosen by judger
-    const int maxGuesses = 9;
+    int maxGuesses;
     char letter;        //letter guessed by player n
-    std::vector<char> playerstatus;     //vector of boolean values to keep track of correct letters and if game is over
+    std::vector<char> currentAnswer;     //vector of boolean values to keep track of correct letters and if game is over
     string rLetter;       //char to return to players if guess is incorrect(probably could just recycle the 'letter' variable
     bool correct;       //boolean flag for if the guess is correct
-    bool gameStart = 1;
     const std::string intro = "Judgment day, pick a word for the defendant: ";      //introductory text for judger
-    int numPlayers = 0;
+    
     osc::Message message;
     
-    
-    
-    ////// Listener vvvv
     osc::Listener listener;
+    const uint16_t recievePort  = 4000;
     
-    
-    
-    
-    
-    
-    
-    ////// Listener class ^^^^
 };
-void oscGameApp::setup()
+void testGameApp::setup()
 {
-    //listener setup vvv
-    listener.setup(4000);
     
-    setAnswer();
+    listener.setup(4000);
+    playerID = 0;
+    numPlayers = 0;
+    bodypart = 0;
+    GO = 0;
+    win = 0;
+    maxGuesses = 9;
+    gameStart = 0;
+    
+    
+    answer = wrongAnswer = "";
+    
+    setAnswer(); //initialize the answerLength and answer, currentAnswer[];
     
     //sender setup vvv
     // assume the broadcast address is this machine's IP address but with 255 as the final value
     // so to multicast from IP 192.168.1.100, the host should be 192.168.1.255
     
-    //host = System::getIpAddress();
     host = "149.31.138.40";
     //    if( host.rfind( '.' ) != string::npos )
     //        host.replace( host.rfind( '.' ) + 1, 3, "255" );
-    sender.setup( host, port, 1 );
+    sender.setup( host, sendPort, 1 );
+    cout<<"all var:--------------- "<< endl;
+    cout<<"answer: " << answer <<endl;
+    cout<<"currentAnswer: " <<endl;
+    cout << "wrong answers: " << wrongAnswer<<endl;
+    
+    
 }
 
-void oscGameApp::update()
-{
-    //// Listen for incoming messages
-    recieveChar();
-}
-
-
-
-void oscGameApp::draw()
-{
-    gl::clear();
-    gl::drawString(intro, vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
-    //gl::color( Color::gray( 0.5f ) );
-    //gl::drawSolidRect(Rectf(vec2(0), vec2(positionX * getWindowWidth(), getWindowHeight())));
-}
-
-
-
-////create a vector equal to the length of the answer and store a 'false' in each space
-void oscGameApp::setAnswer()
+void testGameApp::setAnswer()
 {
     answer = "test";
     txtbox.setAlignment(cinder::TextBox::CENTER);
@@ -130,81 +102,99 @@ void oscGameApp::setAnswer()
     txtbox.setText("Enter word: ");
     txtbox.setColor(Color(0.0f,0.1f,0.6f));
     txtbox.setBackgroundColor(Color(0.0,0.1,0.6));
-    //answer = inputBox.getInput();     place where judger word is received
+    
+    //answer = inputBox.getInput();     //place where judger word is received
+    answer = "apple";   //just for test
     answerLength = answer.size();
+    
     for(int i=0;i<answer.size();i++)
     {
-        playerstatus.push_back('_');
+        currentAnswer.push_back('_');
     }
-    while(numPlayers < 2)
-    {
-        numPlayers++;
-        //app.onPlayerJoin(sendmsg());    place where we wait for and detect new players
-    }
-    wrongAnswer = "";
-    gameStart = 0;
+    //    while(numPlayers < 2)
+    //    {
+    //        numPlayers++;
+    //        //app.onPlayerJoin(sendmsg());    place where we wait for and detect new players
+    //    }
+    //wrongAnswer = "";
+    //gameStart = 0;
 }
 
-////adds 1 to player number each time until it equals total players then reset to first player
-void oscGameApp::activatePlayer()
+
+
+void testGameApp::update()
 {
-    if (player > numPlayers)
-    {
-        player = 1;
-    }
-    player += 1;
     
-}
-
-
-////place where we get the char guessed by players
-void oscGameApp::recieveChar()
-{
-    //letter = 't';
-    //letter = app.getMessage[0];
     while(listener.hasWaitingMessages())
     {
         osc::Message inmsg;
         listener.getNextMessage(&inmsg);
         
-        if(inmsg.getAddress() == "/cinder/osc/1" &&
-           inmsg.getNumArgs() == 2 &&
-           inmsg.getArgType(0) == osc::TYPE_STRING &&
-           inmsg.getArgType(1) == osc::TYPE_INT32)
-        {
-            rLetter = inmsg.getArgAsString(0);
-            player = inmsg.getArgAsInt32(1);
-            
-            letter = rLetter[0];
-        }else if(inmsg.getAddress() == "/AskID"){
-            player += 1;
-            message.setAddress("/SendID");
-            message.addIntArg(player);
-            message.setRemoteEndpoint(host, port);
+        if (!gameStart) {
+            string tempIP = inmsg.getArgAsString(0);
+            numPlayers++;
+            playerID ++;
+            message.setAddress("SendID");
+            message.addIntArg(playerID);
+            message.setRemoteEndpoint(tempIP, sendPort);
             sender.sendMessage(message);
+            cout << "send player ID: " << playerID <<endl;
+            cout << "IP address: " << tempIP <<endl;
+            cout << "-------------------------" <<endl;
             
+            if (numPlayers >= 1) {
+                gameStart = true;
+                cout << "trigger message!" <<endl;
+                makeMessage();
+            }
+            cout << "1 player join in. Now players number is: " << numPlayers <<endl;
         }
         
-        cout << "here is running " << endl;
-        player = inmsg.getArgAsInt32(0);
-        rLetter = inmsg.getArgAsString(1);
-        cout << "player is : " << player <<endl;
-        cout << "right letter is : " << rLetter <<endl;
+        else if( gameStart )
+        {
+            rLetter = inmsg.getArgAsString(0); // set right
+            playerID = inmsg.getArgAsInt32(1);
+            compareChar(rLetter);
+            cout<<"normal message." <<endl;
+            makeMessage();
+        }
     }
+    
 }
 
+
+
+void testGameApp::draw()
+{
+    gl::clear();
+    gl::drawString(intro, vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
+}
+
+
+
+////create a vector equal to the length of the answer and store a 'false' in each space
+////adds 1 to player number each time until it equals total players then reset to first player
+void testGameApp::activatePlayer()
+{
+    if (playerID > numPlayers)
+    {
+        playerID = 1;
+    }
+    playerID += 1;
+    
+}
 
 ////loop through the answer and compare the guessed char to each one
 ////if they match change the corresponding vector boolean to 'true'
 ////and set correct flag
-void oscGameApp::compareChar(string guess)
+void testGameApp::compareChar(string guess)
 {
     correct = 0;
     for(std::string::size_type i=0;i<answer.size();i++)
     {
         if(answer[i] == guess[0])
         {
-            playerstatus[i] = guess[0];
+            currentAnswer[i] = guess[0];
             correct = 1;
         }
     }
@@ -216,11 +206,9 @@ void oscGameApp::compareChar(string guess)
 }
 
 
-////check the status array for the presence of a false
-////if all elements are true game over and players win
-void oscGameApp::compareAnswers()
+void testGameApp::compareAnswers()
 {
-    if(std::all_of(playerstatus.begin(), playerstatus.end(), [](int i){return i=='_';}))
+    if(std::all_of(currentAnswer.begin(), currentAnswer.end(), [](int i){return i=='_';}))
     {
         GO = 0;
     }
@@ -233,7 +221,7 @@ void oscGameApp::compareAnswers()
 
 
 ////if players have all body parts gome over and players lose
-void oscGameApp::checkDead()
+void testGameApp::checkDead()
 {
     if(bodypart == maxGuesses)
     {
@@ -244,21 +232,20 @@ void oscGameApp::checkDead()
 
 
 ////run through the above functions appending the generated values to a message for players
-void oscGameApp::makeMessage()
+void testGameApp::makeMessage()
 {
-    activatePlayer();
-    message.addIntArg(player);
+    //compareChar(rLetter);
+    //activatePlayer();   //switch players
+    message.setAddress("/result/");
+    message.addIntArg(playerID);
     message.addIntArg(answerLength);     //Use <- this variable to initialze the length of the boolean vector for the first time.
-    compareChar(rLetter);
-    currentAnswer = "";
-    //msg.addStringArg(rLetter);
-    //msg.addIntArg(correct);
-    for(int i=0;i<playerstatus.size();i++)
+    
+    string currentAnswerInString = "";
+    for(int i=0;i<currentAnswer.size();i++)
     {
-        currentAnswer = currentAnswer + playerstatus[i];
-        //msg.addIntArg(playerstatus[i]);
+        currentAnswerInString += currentAnswer[i];
     }
-    message.addStringArg(currentAnswer);
+    message.addStringArg(currentAnswerInString);
     message.addStringArg(wrongAnswer);
     if(correct == 0)
     {
@@ -267,24 +254,32 @@ void oscGameApp::makeMessage()
     }
     compareAnswers();
     message.addIntArg(GO);
+    
     if(GO == 1)
     {
         message.addIntArg(win);
     }
+    
+    cout << "Message is: " <<endl;
+    cout << "player ID: " << playerID << endl;
+    cout << "anwwerLength : " << answerLength <<endl;
+    cout << "current Answer String: " << currentAnswerInString <<endl;
+    cout << "wrong Answer: " << wrongAnswer <<endl;
+    cout << "bodyPart: " << bodypart<<endl;
+    cout << "game over? " << GO <<endl;
+    cout << "--------------------------------------"<<endl;
+    
 }
 
 
 
 
-void oscGameApp::keyUp(KeyEvent event)
+void testGameApp::keyUp(KeyEvent event)
 {
     if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 0)
     {
         message.setAddress("/cinder/osc/1");
-        //message.addFloatArg(positionX);
         makeMessage();
-        //        cout<<m<<endl;
-        message.setRemoteEndpoint(host, port);
         sender.sendMessage(message);
     }
     
@@ -298,13 +293,13 @@ void oscGameApp::keyUp(KeyEvent event)
 }
 
 
-void oscGameApp::mouseMove( MouseEvent event )
+void testGameApp::mouseMove( MouseEvent event )
 {
 }
 
-void oscGameApp::mouseDrag( MouseEvent event )
+void testGameApp::mouseDrag( MouseEvent event )
 {
 }
 
 
-CINDER_APP( oscGameApp, RendererGl )
+CINDER_APP( testGameApp, RendererGl )
