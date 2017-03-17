@@ -152,7 +152,7 @@ void HangManGuestApp::update()
                 cout<<"bodypart is : " << bodypart <<endl;
                 
                 GO = message.getArgAsInt32(5);
-                cout<<"rightAnswer is : " << rightAnswer <<endl;
+                cout<<"rightAnswer is : " << GO <<endl;
     
             }
         }
@@ -231,11 +231,12 @@ void HangManGuestApp::draw()
     drawAnswer();
     
     //start drawing when there is wrong answer
-    if (wrongAnswer.getWrongAnswers() != "") {
-        drawMan();
-    }
-    
-    if (GO == 1) {
+//    if (wrongAnswer.getWrongAnswers() != "") {
+//        drawMan();
+//    }
+    drawMan();
+
+    if (GO == 1 && win == 0) {
         gameOver();
     }
 }
