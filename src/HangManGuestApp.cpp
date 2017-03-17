@@ -23,6 +23,7 @@ class HangManGuestApp : public App {
     void drawLine();
     void drawAnswer();
     void drawMan();
+    void gameOver();
     
     string modifyAnswer(string answer);
     
@@ -74,7 +75,7 @@ void HangManGuestApp::setup()
     sender.sendMessage(askID);
     
     setWindowSize(800, 600);
-    answerFont = Font(loadAsset( "Comic Sans MS Bold.ttf"), 60);
+    answerFont = Font(loadAsset( "Comic Sans MS Bold.ttf"), 40);
     
     bodypart = 0;
     bActivated = false;
@@ -134,14 +135,31 @@ void HangManGuestApp::update()
                 cout<<"rightAnswer is : " << rightAnswer <<endl;
                 
                 bActivated = true;
+            }else
+                
+            {
+                //can still receive the data when I am not the current player
+                answerLength = message.getArgAsInt32(1);
+                cout<<"answerLength is : " << answerLength <<endl;
+                
+                tempRightAnswer = message.getArgAsString(2);
+                cout<<"rightAnswer is : " << tempRightAnswer <<endl;
+                
+                wrongAnswer.setWrongAnswers(message.getArgAsString(3));
+                cout<<"wrongAnswer is : " << wrongAnswer.getWrongAnswers() <<endl;
+                
+                bodypart = message.getArgAsInt32(4);
+                cout<<"bodypart is : " << bodypart <<endl;
+                
+                GO = message.getArgAsInt32(5);
+                cout<<"rightAnswer is : " << rightAnswer <<endl;
+    
             }
         }
     }
     if (bActivated) {
         inputArea.enableTextField();
-//        cout << "====="<< rightAnswer << endl;
     }
-    
     
 }
 
@@ -187,6 +205,12 @@ void HangManGuestApp::drawMan()
 
 }
 
+void HangManGuestApp::gameOver()
+{
+    gl::color(ci::Color(1.f, 0, 0));
+    gl::drawSolidRect(Rectf(170, 230, 620, 380));
+    gl::drawString("G A M E  O V E R", ci::vec2(220.f, 280.f),Color::white(), answerFont);
+}
 
 void HangManGuestApp::draw()
 {
@@ -200,13 +224,20 @@ void HangManGuestApp::draw()
     gl::color(ci::Color(0.6f,0.5f, 0.4f));
     gl::drawSolidRect(Rectf(480, 440, 800, 600));
     
-    
     inputArea.draw();
     wrongAnswer.draw();
-    rightAnswer = modifyAnswer(tempRightAnswer);
     
-    drawMan();
+    rightAnswer = modifyAnswer(tempRightAnswer);
     drawAnswer();
+    
+    //start drawing when there is wrong answer
+    if (wrongAnswer.getWrongAnswers() != "") {
+        drawMan();
+    }
+    
+    if (GO == 1) {
+        gameOver();
+    }
 }
 
 void HangManGuestApp::mouseDown(MouseEvent event)
@@ -311,12 +342,12 @@ void HangManGuestApp::keyDown(KeyEvent event)
                         cout << "arg["<<i<<"] is : "<< mMessage.getArgAsInt32(i) <<endl;
                     if(mMessage.getArgType(i) == osc::TYPE_STRING)
                         cout << "arg["<<i<<"] is : "<< mMessage.getArgAsString(i)<<endl;
-                    
                 }
+                
                 bActivated = false;
                 inputArea.reset();
                 inputArea.disableTextField();
-                
+
             }
         }
     }
