@@ -61,6 +61,12 @@ public:
     osc::Listener listener;
     const uint16_t recievePort  = 4000;
     
+    string boxtext;
+    gl::TextureRef tex;
+    ci::Rectf rect;
+    bool wordbox = true;
+    bool answerIsInput = false;
+    
 };
 void testGameApp::setup()
 {
@@ -76,8 +82,7 @@ void testGameApp::setup()
     
     
     answer = wrongAnswer = "";
-    
-    setAnswer(); //initialize the answerLength and answer, currentAnswer[];
+    //setAnswer(); //initialize the answerLength and answer, currentAnswer[];
     
     //sender setup vvv
     // assume the broadcast address is this machine's IP address but with 255 as the final value
@@ -97,15 +102,15 @@ void testGameApp::setup()
 
 void testGameApp::setAnswer()
 {
-    answer = "test";
-    txtbox.setAlignment(cinder::TextBox::CENTER);
-    txtbox.setSize(vec2(250,42));
-    txtbox.setText("Enter word: ");
-    txtbox.setColor(Color(0.0f,0.1f,0.6f));
-    txtbox.setBackgroundColor(Color(0.0,0.1,0.6));
+    //answer = "test";
     
     //answer = inputBox.getInput();     //place where judger word is received
-    answer = "apple";   //just for test
+    //answer = "apple";   //just for test
+    while(!answerIsInput)
+    {
+        cout << "waiting for word" << endl;
+    }
+    
     answerLength = answer.size();
     
     for(int i=0;i<answer.size();i++)
@@ -119,6 +124,7 @@ void testGameApp::setAnswer()
     //    }
     //wrongAnswer = "";
     //gameStart = 0;
+    answerIsInput = false;
 }
 
 
@@ -167,8 +173,31 @@ void testGameApp::update()
 
 void testGameApp::draw()
 {
-    gl::clear();
-    gl::drawString(intro, vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
+    if(!wordbox && !answerIsInput)
+    {
+        gl::clear();
+        gl::drawString("waiting for player guess", vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
+        
+    }
+    if(wordbox)
+    {
+        gl::drawString(intro, vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
+        cout << "waiting for judger to choose word" << endl;
+        txtbox.setAlignment(cinder::TextBox::CENTER);
+        txtbox.setSize(vec2(250,42));
+        txtbox.setText(answer);
+        txtbox.setColor(Color(0.0f,0.1f,0.6f));
+        txtbox.setBackgroundColor(Color(0.0,0.1,0.6));
+        tex= gl::Texture2d::create(txtbox.render());
+        
+        gl::draw(tex);
+    }
+    if(!wordbox && answerIsInput)
+    {
+        setAnswer(); //initialize the answerLength and answer, currentAnswer[];
+        cout << answer << endl;
+        //cout << "Answer set" << endl;
+    }
 }
 
 
@@ -245,11 +274,15 @@ void testGameApp::makeMessage()
     {
         currentAnswerInString += currentAnswer[i];
     }
+    cout << "string sent will be: " << currentAnswerInString << endl;
     message.addStringArg(currentAnswerInString);
     message.addStringArg(wrongAnswer);
     if(correct == 0)
     {
         bodypart += 1;
+        message.addIntArg(bodypart);
+    }else
+    {
         message.addIntArg(bodypart);
     }
     compareAnswers();
@@ -287,18 +320,32 @@ void testGameApp::makeMessage()
 
 void testGameApp::keyUp(KeyEvent event)
 {
-    if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 0)
+    if(gameStart == 0)
     {
-        message.setAddress("/cinder/osc/1");
+        cout << "keypress" << endl;
+        if( event.getCode() == KeyEvent::KEY_BACKSPACE ){
+            if( answer.size() > 0 ){
+                answer = answer.substr( 0, answer.size()-1 );
+            }
+        } else {
+            const char character = event.getChar();
+            answer += string( &character, 1 );
+        }
+    }
+    if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 1)
+    {
+        message.setAddress("/cinder/osc");
         makeMessage();
         sender.sendMessage(message);
     }
     
-    if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 1)
+    if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 0)
     {
         //setAnswer();
         //answer = txtbox.getText();
         //cout << answer << endl;
+        wordbox = false;
+        answerIsInput = true;
     }
     
 }
