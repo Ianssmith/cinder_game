@@ -31,7 +31,7 @@ public:
     void compareChar(string);
     void compareAnswers();
     void checkDead();
-    void makeMessage();
+    string makeMessage(string);
     
     /// message vars
     int playerID;     //player turn tracker
@@ -66,6 +66,8 @@ public:
     ci::Rectf rect;
     bool wordbox = true;
     bool answerIsInput = false;
+    
+    string showProgress = "";
     
 };
 void testGameApp::setup()
@@ -152,7 +154,7 @@ void testGameApp::update()
             if (numPlayers >= 1) {
                 gameStart = true;
                 cout << "trigger message!" <<endl;
-                makeMessage();
+                showProgress = makeMessage(showProgress);
             }
             cout << "1 player join in. Now players number is: " << numPlayers <<endl;
         }
@@ -163,7 +165,9 @@ void testGameApp::update()
             playerID = inmsg.getArgAsInt32(1);
             compareChar(rLetter);
             cout<<"normal message." <<endl;
-            makeMessage();
+            gl::drawString("player guessed: " + rLetter,vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
+            showProgress = makeMessage(showProgress);
+            gl::drawString("player progress: " + showProgress,vec2(getWindowWidth()*0.75f,getWindowHeight()*0.75f),Color(1.0,0.0,0.0));
         }
     }
     
@@ -181,13 +185,15 @@ void testGameApp::draw()
     }
     if(wordbox)
     {
+        
+        gl::clear();
         gl::drawString(intro, vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
-        cout << "waiting for judger to choose word" << endl;
+        //cout << "waiting for judger to choose word" << endl;
         txtbox.setAlignment(cinder::TextBox::CENTER);
         txtbox.setSize(vec2(250,42));
         txtbox.setText(answer);
-        txtbox.setColor(Color(0.0f,0.1f,0.6f));
-        txtbox.setBackgroundColor(Color(0.0,0.1,0.6));
+        txtbox.setColor(Color(0.0f,0.0f,0.0f));
+        txtbox.setBackgroundColor(Color(0.5,0.5,0.5));
         tex= gl::Texture2d::create(txtbox.render());
         
         gl::draw(tex);
@@ -262,7 +268,7 @@ void testGameApp::checkDead()
 
 
 ////run through the above functions appending the generated values to a message for players
-void testGameApp::makeMessage()
+string testGameApp::makeMessage(string progressForHostRender)
 {
     message.clear();
     message.setAddress("/cinder/osc");
@@ -275,6 +281,7 @@ void testGameApp::makeMessage()
         currentAnswerInString += currentAnswer[i];
     }
     cout << "string sent will be: " << currentAnswerInString << endl;
+    progressForHostRender = currentAnswerInString;
     message.addStringArg(currentAnswerInString);
     message.addStringArg(wrongAnswer);
     if(correct == 0)
@@ -312,6 +319,7 @@ void testGameApp::makeMessage()
     //    cout << "bodyPart: " << bodypart<<endl;
     //    cout << "game over? " << GO <<endl;
     cout << "--------------------------------------"<<endl;
+    return progressForHostRender;
     
 }
 
@@ -335,7 +343,7 @@ void testGameApp::keyUp(KeyEvent event)
     if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 1)
     {
         message.setAddress("/cinder/osc");
-        makeMessage();
+        showProgress = makeMessage(showProgress);
         sender.sendMessage(message);
     }
     
