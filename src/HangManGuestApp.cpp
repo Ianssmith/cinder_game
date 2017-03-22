@@ -66,7 +66,7 @@ void HangManGuestApp::setup()
 {
     // initialize net connection---------------------
     listener.setup(3000); // listener port
-    host = "149.31.207.68"; // judge's IP
+    host = "192.168.1.255"; // judge's IP
     sender.setup(host,4000,true);
     
     osc::Message    askID;
@@ -132,7 +132,7 @@ void HangManGuestApp::update()
                 cout<<"bodypart is : " << bodypart <<endl;
                 
                 GO = message.getArgAsInt32(5);
-                cout<<"rightAnswer is : " << rightAnswer <<endl;
+                cout<<"GO is : " << GO <<endl;
                 
                 bActivated = true;
             }else
@@ -152,8 +152,7 @@ void HangManGuestApp::update()
                 cout<<"bodypart is : " << bodypart <<endl;
                 
                 GO = message.getArgAsInt32(5);
-                cout<<"rightAnswer is : " << GO <<endl;
-    
+                cout<<"GO is : " << GO <<endl;
             }
         }
     }
@@ -200,9 +199,22 @@ void HangManGuestApp::drawMan()
     
     // receive int bodypart
     for (int i=0; i < bodypart; i++){
-        gl::draw (mBodyPart[i],Rectf(525, 110, 675, 400));
+        if (bodypart < 9){
+            gl::draw (mBodyPart[i],Rectf(525, 110, 675, 400));
+        }else if (bodypart == 9) {
+            gl::draw (mBodyPart[0],Rectf(525, 110, 675, 400));
+            gl::draw (mBodyPart[1],Rectf(525, 110, 675, 400));
+            gl::draw (mBodyPart[2],Rectf(525, 110, 675, 400));
+            gl::draw (mBodyPart[3],Rectf(525, 110, 675, 400));
+            gl::draw (mBodyPart[4],Rectf(525, 110, 675, 400));
+            gl::draw (mBodyPart[5],Rectf(525, 110, 675, 400));
+            gl::draw (mBodyPart[6],Rectf(525, 110, 675, 400));
+            gl::draw (mBodyPart[7],Rectf(525, 110, 675, 400));
+            gl::draw (mBodyPart[8],Rectf(525, 110, 675, 400));
+            gameOver();
+            inputArea.disableTextField();
+        }
     }
-
 }
 
 void HangManGuestApp::gameOver()
@@ -235,10 +247,6 @@ void HangManGuestApp::draw()
 //        drawMan();
 //    }
     drawMan();
-
-    if (GO == 1 && win == 0) {
-        gameOver();
-    }
 }
 
 void HangManGuestApp::mouseDown(MouseEvent event)
