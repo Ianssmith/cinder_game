@@ -90,7 +90,7 @@ void testGameApp::setup()
     // assume the broadcast address is this machine's IP address but with 255 as the final value
     // so to multicast from IP 192.168.1.100, the host should be 192.168.1.255
     
-    host = "149.31.138.40";
+    host = "192.168.1.153";
     //    if( host.rfind( '.' ) != string::npos )
     //        host.replace( host.rfind( '.' ) + 1, 3, "255" );
     sender.setup( host, sendPort, 1 );
@@ -335,9 +335,10 @@ void testGameApp::keyUp(KeyEvent event)
             if( answer.size() > 0 ){
                 answer = answer.substr( 0, answer.size()-1 );
             }
-        } else {
+        } else if (event.getCode() != KeyEvent::KEY_RETURN) {
             const char character = event.getChar();
             answer += string( &character, 1 );
+			cout << "answer size = " << answer.size() <<endl;
         }
     }
     if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 1)
