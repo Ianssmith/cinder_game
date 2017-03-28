@@ -24,6 +24,7 @@ class HangManGuestApp : public App {
     void drawAnswer();
     void drawMan();
     void gameOver();
+    void gameWin();
     
     string modifyAnswer(string answer);
     
@@ -66,7 +67,8 @@ void HangManGuestApp::setup()
 {
     // initialize net connection---------------------
     listener.setup(3000); // listener port
-    host = "149.31.146.18"; // judge's IP
+//    host = "149.31.207.32"; // judge's IP
+    host = "149.31.146.18";
     sender.setup(host,4000,true);
     
     osc::Message    askID;
@@ -134,6 +136,9 @@ void HangManGuestApp::update()
                 GO = message.getArgAsInt32(5);
                 cout<<"GO is : " << GO <<endl;
                 
+                win = message.getArgAsInt32(6);
+                
+                
                 bActivated = true;
             }else
                 
@@ -198,22 +203,10 @@ void HangManGuestApp::drawMan()
     std::array<gl::TextureRef, 9> mBodyPart = {mBodyTex1, mBodyTex2, mBodyTex3, mBodyTex4, mBodyTex5, mBodyTex6, mBodyTex7, mBodyTex8, mBodyTex9};
     
     // receive int bodypart
-    for (int i=0; i < bodypart; i++){
-        if (bodypart < 9){
-            gl::draw (mBodyPart[i],Rectf(525, 110, 675, 400));
-        }else if (bodypart == 9) {
-            gl::draw (mBodyPart[0],Rectf(525, 110, 675, 400));
-            gl::draw (mBodyPart[1],Rectf(525, 110, 675, 400));
-            gl::draw (mBodyPart[2],Rectf(525, 110, 675, 400));
-            gl::draw (mBodyPart[3],Rectf(525, 110, 675, 400));
-            gl::draw (mBodyPart[4],Rectf(525, 110, 675, 400));
-            gl::draw (mBodyPart[5],Rectf(525, 110, 675, 400));
-            gl::draw (mBodyPart[6],Rectf(525, 110, 675, 400));
-            gl::draw (mBodyPart[7],Rectf(525, 110, 675, 400));
-            gl::draw (mBodyPart[8],Rectf(525, 110, 675, 400));
-            gameOver();
-            inputArea.disableTextField();
-        }
+    for (int i=1; i <= bodypart; i++){
+        
+            gl::draw (mBodyPart[i-1],Rectf(525, 110, 675, 400));
+        
     }
 }
 
@@ -222,6 +215,12 @@ void HangManGuestApp::gameOver()
     gl::color(ci::Color(1.f, 0, 0));
     gl::drawSolidRect(Rectf(170, 230, 620, 380));
     gl::drawString("G A M E  O V E R", ci::vec2(220.f, 280.f),Color::white(), answerFont);
+}
+void HangManGuestApp::gameWin()
+{
+    gl::color(ci::Color(0, 1.f, 0));
+    gl::drawSolidRect(Rectf(170, 230, 620, 380));
+    gl::drawString("Y O U  W I N ! !", ci::vec2(220.f, 280.f),Color::white(), answerFont);
 }
 
 void HangManGuestApp::draw()
@@ -242,11 +241,19 @@ void HangManGuestApp::draw()
     rightAnswer = modifyAnswer(tempRightAnswer);
     drawAnswer();
     
-    //start drawing when there is wrong answer
-//    if (wrongAnswer.getWrongAnswers() != "") {
-//        drawMan();
-//    }
     drawMan();
+    
+    if (GO == 1 && win == 0)
+    {
+        gameOver();
+        inputArea.disableTextField();
+    }
+    if (GO == 1 && win == 1)
+    {
+        cout << "win!" <<endl;
+        gameWin();
+        inputArea.disableTextField();
+    }
 }
 
 void HangManGuestApp::mouseDown(MouseEvent event)
