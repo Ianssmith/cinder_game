@@ -90,7 +90,7 @@ void testGameApp::setup()
     // assume the broadcast address is this machine's IP address but with 255 as the final value
     // so to multicast from IP 192.168.1.100, the host should be 192.168.1.255
     
-    host = "192.168.1.153";
+    host = "149.31.207.32";
     //    if( host.rfind( '.' ) != string::npos )
     //        host.replace( host.rfind( '.' ) + 1, 3, "255" );
     sender.setup( host, sendPort, 1 );
@@ -142,6 +142,7 @@ void testGameApp::update()
         if (!gameStart) {
             string tempIP = inmsg.getArgAsString(0);
             numPlayers++;
+            cout << numPlayers << endl;
             playerID ++;
             message.setAddress("/cinder/osc");
             message.addIntArg(playerID);
@@ -165,9 +166,7 @@ void testGameApp::update()
             playerID = inmsg.getArgAsInt32(1);
             compareChar(rLetter);
             cout<<"normal message." <<endl;
-            gl::drawString("player guessed: " + rLetter,vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
             showProgress = makeMessage(showProgress);
-            gl::drawString("player progress: " + showProgress,vec2(getWindowWidth()*0.75f,getWindowHeight()*0.75f),Color(1.0,0.0,0.0));
         }
     }
     
@@ -180,6 +179,8 @@ void testGameApp::draw()
     if(!wordbox && !answerIsInput)
     {
         gl::clear();
+        gl::drawString("player guessed: " + rLetter,vec2(getWindowWidth()*0.25f,getWindowHeight()*0.50f),Color(1.0,0.0,0.0));
+        gl::drawString("player progress: " + showProgress,vec2(getWindowWidth()*0.75f,getWindowHeight()*0.75f),Color(1.0,0.0,0.0));
         gl::drawString("waiting for player guess", vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
         
     }
@@ -237,6 +238,7 @@ void testGameApp::compareChar(string guess)
     if(correct == 0)
     {
         wrongAnswer = wrongAnswer + guess[0];
+        checkDead();
         //rLetter = letter;
     }
 }
@@ -338,7 +340,7 @@ void testGameApp::keyUp(KeyEvent event)
         } else if (event.getCode() != KeyEvent::KEY_RETURN) {
             const char character = event.getChar();
             answer += string( &character, 1 );
-			cout << "answer size = " << answer.size() <<endl;
+            cout << "answer size = " << answer.size() <<endl;
         }
     }
     if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 1)
