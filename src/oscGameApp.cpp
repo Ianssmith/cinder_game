@@ -30,8 +30,8 @@ public:
     void activatePlayer();
     void compareChar(string);
     void compareAnswers();
-    void checkDead();
-    string makeMessage(string);
+    //void checkDead();
+    void makeMessage();
     
     /// message vars
     int playerID;     //player turn tracker
@@ -42,7 +42,7 @@ public:
     string wrongAnswer;
     
     int bodypart;
-    bool gameStart;
+    bool gameStart; //if more than 1 player, gameStart = 1;
     bool GO;        //boolean flag for if game is over
     bool win;       //boolean flag for players win or lose
     
@@ -61,13 +61,6 @@ public:
     osc::Listener listener;
     const uint16_t recievePort  = 4000;
     
-    string boxtext;
-    gl::TextureRef tex;
-    ci::Rectf rect;
-    bool wordbox = true;
-    bool answerIsInput = false;
-    
-    string showProgress = "";
     
 };
 void testGameApp::setup()
@@ -81,16 +74,18 @@ void testGameApp::setup()
     win = 0;
     maxGuesses = 9;
     gameStart = 0;
+    correct = true;
     
     
     answer = wrongAnswer = "";
-    //setAnswer(); //initialize the answerLength and answer, currentAnswer[];
+    
+    setAnswer(); //initialize the answerLength and answer, currentAnswer[];
     
     //sender setup vvv
     // assume the broadcast address is this machine's IP address but with 255 as the final value
     // so to multicast from IP 192.168.1.100, the host should be 192.168.1.255
     
-    host = "149.31.207.32";
+    host = "149.31.138.105";
     //    if( host.rfind( '.' ) != string::npos )
     //        host.replace( host.rfind( '.' ) + 1, 3, "255" );
     sender.setup( host, sendPort, 1 );
@@ -104,29 +99,16 @@ void testGameApp::setup()
 
 void testGameApp::setAnswer()
 {
-    //answer = "test";
     
     //answer = inputBox.getInput();     //place where judger word is received
-    //answer = "apple";   //just for test
-    while(!answerIsInput)
-    {
-        cout << "waiting for word" << endl;
-    }
-    
-    answerLength = answer.size();
+    answer = "apple";   //just for test
+    //    answerLength = answer.size();
     
     for(int i=0;i<answer.size();i++)
     {
         currentAnswer.push_back('_');
     }
-    //    while(numPlayers < 2)
-    //    {
-    //        numPlayers++;
-    //        //app.onPlayerJoin(sendmsg());    place where we wait for and detect new players
-    //    }
-    //wrongAnswer = "";
-    //gameStart = 0;
-    answerIsInput = false;
+    answerLength = currentAnswer.size();
 }
 
 
@@ -142,7 +124,6 @@ void testGameApp::update()
         if (!gameStart) {
             string tempIP = inmsg.getArgAsString(0);
             numPlayers++;
-            cout << numPlayers << endl;
             playerID ++;
             message.setAddress("/cinder/osc");
             message.addIntArg(playerID);
@@ -155,7 +136,7 @@ void testGameApp::update()
             if (numPlayers >= 1) {
                 gameStart = true;
                 cout << "trigger message!" <<endl;
-                showProgress = makeMessage(showProgress);
+                makeMessage();
             }
             cout << "1 player join in. Now players number is: " << numPlayers <<endl;
         }
@@ -166,7 +147,7 @@ void testGameApp::update()
             playerID = inmsg.getArgAsInt32(1);
             compareChar(rLetter);
             cout<<"normal message." <<endl;
-            showProgress = makeMessage(showProgress);
+            makeMessage();
         }
     }
     
@@ -176,35 +157,8 @@ void testGameApp::update()
 
 void testGameApp::draw()
 {
-    if(!wordbox && !answerIsInput)
-    {
-        gl::clear();
-        gl::drawString("player guessed: " + rLetter,vec2(getWindowWidth()*0.25f,getWindowHeight()*0.50f),Color(1.0,0.0,0.0));
-        gl::drawString("player progress: " + showProgress,vec2(getWindowWidth()*0.75f,getWindowHeight()*0.75f),Color(1.0,0.0,0.0));
-        gl::drawString("waiting for player guess", vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
-        
-    }
-    if(wordbox)
-    {
-        
-        gl::clear();
-        gl::drawString(intro, vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
-        //cout << "waiting for judger to choose word" << endl;
-        txtbox.setAlignment(cinder::TextBox::CENTER);
-        txtbox.setSize(vec2(250,42));
-        txtbox.setText(answer);
-        txtbox.setColor(Color(0.0f,0.0f,0.0f));
-        txtbox.setBackgroundColor(Color(0.5,0.5,0.5));
-        tex= gl::Texture2d::create(txtbox.render());
-        
-        gl::draw(tex);
-    }
-    if(!wordbox && answerIsInput)
-    {
-        setAnswer(); //initialize the answerLength and answer, currentAnswer[];
-        cout << answer << endl;
-        //cout << "Answer set" << endl;
-    }
+    gl::clear();
+    gl::drawString(intro, vec2(getWindowWidth()*0.25f,getWindowHeight()*0.25f),Color(1.0,0.0,0.0));
 }
 
 
@@ -226,81 +180,81 @@ void testGameApp::activatePlayer()
 ////and set correct flag
 void testGameApp::compareChar(string guess)
 {
-    correct = 0;
+    correct = false;
     for(std::string::size_type i=0;i<answer.size();i++)
     {
         if(answer[i] == guess[0])
         {
             currentAnswer[i] = guess[0];
-            correct = 1;
+            correct = true;
         }
     }
-    if(correct == 0)
+    if(correct == false)
     {
         wrongAnswer = wrongAnswer + guess[0];
-        checkDead();
-        //rLetter = letter;
     }
 }
 
 
 void testGameApp::compareAnswers()
 {
-    if(std::all_of(currentAnswer.begin(), currentAnswer.end(), [](int i){return i=='_';}))
+    if(bodypart == 9) // user lose
+    {
+        GO = 1;
+        win = 0;
+    }
+    else   // playing game
     {
         GO = 0;
+        win = 0;
     }
-    else
+    
+    if(std::all_of(currentAnswer.begin(), currentAnswer.end(), [](int i){ return i !='_';})) // user win
     {
+        cout <<"win" <<endl;
         GO = 1;
         win = 1;
     }
+    
 }
 
 
 ////if players have all body parts gome over and players lose
-void testGameApp::checkDead()
-{
-    if(bodypart == maxGuesses)
-    {
-        GO = 1;
-        compareAnswers();
-    }
-}
+//void testGameApp::checkDead()
+//{
+//        if(bodypart == maxGuesses)
+//        {
+//            GO = 1;
+//            compareAnswers();
+//        }
+//    }
 
 
 ////run through the above functions appending the generated values to a message for players
-string testGameApp::makeMessage(string progressForHostRender)
+void testGameApp::makeMessage()
 {
     message.clear();
     message.setAddress("/cinder/osc");
-    message.addIntArg(playerID);
-    message.addIntArg(answerLength);     //Use <- this variable to initialze the length of the boolean vector for the first time.
+    message.addIntArg(playerID);  // [0]
+    message.addIntArg(answerLength);     // [1]Use <- this variable to initialze the length of the boolean vector for the first time.
     
     string currentAnswerInString = "";
     for(int i=0;i<currentAnswer.size();i++)
     {
         currentAnswerInString += currentAnswer[i];
     }
-    cout << "string sent will be: " << currentAnswerInString << endl;
-    progressForHostRender = currentAnswerInString;
-    message.addStringArg(currentAnswerInString);
-    message.addStringArg(wrongAnswer);
+    message.addStringArg(currentAnswerInString); //[2]
+    message.addStringArg(wrongAnswer); //[3]
     if(correct == 0)
     {
         bodypart += 1;
-        message.addIntArg(bodypart);
-    }else
-    {
-        message.addIntArg(bodypart);
     }
+    message.addIntArg(bodypart); //[4]
     compareAnswers();
-    message.addIntArg(GO);
+    message.addIntArg(GO); //[5]
+    message.addIntArg(win); //[6]
     
-    if(GO == 1)
-    {
-        message.addIntArg(win);
-    }
+    
     
     sender.sendMessage(message);
     
@@ -313,15 +267,7 @@ string testGameApp::makeMessage(string progressForHostRender)
         }
     }
     
-    //    cout << "Message is: " <<endl;
-    //    cout << "player ID: " << playerID << endl;
-    //    cout << "answerLength : " << answerLength <<endl;
-    //    cout << "current Answer String: " << currentAnswerInString <<endl;
-    //    cout << "wrong Answer: " << wrongAnswer <<endl;
-    //    cout << "bodyPart: " << bodypart<<endl;
-    //    cout << "game over? " << GO <<endl;
     cout << "--------------------------------------"<<endl;
-    return progressForHostRender;
     
 }
 
@@ -330,33 +276,18 @@ string testGameApp::makeMessage(string progressForHostRender)
 
 void testGameApp::keyUp(KeyEvent event)
 {
-    if(gameStart == 0)
+    if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 0)
     {
-        cout << "keypress" << endl;
-        if( event.getCode() == KeyEvent::KEY_BACKSPACE ){
-            if( answer.size() > 0 ){
-                answer = answer.substr( 0, answer.size()-1 );
-            }
-        } else if (event.getCode() != KeyEvent::KEY_RETURN) {
-            const char character = event.getChar();
-            answer += string( &character, 1 );
-            cout << "answer size = " << answer.size() <<endl;
-        }
-    }
-    if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 1)
-    {
-        message.setAddress("/cinder/osc");
-        showProgress = makeMessage(showProgress);
+        message.setAddress("/cinder/osc/1");
+        makeMessage();
         sender.sendMessage(message);
     }
     
-    if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 0)
+    if(event.getCode() == KeyEvent::KEY_RETURN && gameStart == 1)
     {
         //setAnswer();
         //answer = txtbox.getText();
         //cout << answer << endl;
-        wordbox = false;
-        answerIsInput = true;
     }
     
 }
