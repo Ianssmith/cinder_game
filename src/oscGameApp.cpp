@@ -24,6 +24,8 @@ public:
     
     osc::Sender sender;
     std::string host;
+    std::string host1;
+    std::string host2;
     const uint16_t sendPort = 3000;
     
     void setAnswer();
@@ -90,7 +92,10 @@ void testGameApp::setup()
     // assume the broadcast address is this machine's IP address but with 255 as the final value
     // so to multicast from IP 192.168.1.100, the host should be 192.168.1.255
     
-    host = "149.31.207.32";
+    host1 = "149.31.138.105";
+    //host2 = "149.31.207.32";
+    host2 = "149.31.146.18";
+    host = host1;
     //    if( host.rfind( '.' ) != string::npos )
     //        host.replace( host.rfind( '.' ) + 1, 3, "255" );
     sender.setup( host, sendPort, 1 );
@@ -152,7 +157,7 @@ void testGameApp::update()
             cout << "IP address: " << tempIP <<endl;
             cout << "-------------------------" <<endl;
             
-            if (numPlayers >= 1) {
+            if (numPlayers >= 2) {
                 gameStart = true;
                 cout << "trigger message!" <<endl;
                 showProgress = makeMessage(showProgress);
@@ -215,8 +220,10 @@ void testGameApp::activatePlayer()
 {
     if (playerID > numPlayers)
     {
+        host = host1;
         playerID = 1;
     }
+    host = host2;
     playerID += 1;
     
 }
@@ -238,19 +245,17 @@ void testGameApp::compareChar(string guess)
     if(correct == 0)
     {
         wrongAnswer = wrongAnswer + guess[0];
-        checkDead();
+        bodypart++;
         //rLetter = letter;
+        checkDead();
     }
 }
 
 
 void testGameApp::compareAnswers()
 {
-    if(std::all_of(currentAnswer.begin(), currentAnswer.end(), [](int i){return i=='_';}))
-    {
-        GO = 0;
-    }
-    else
+    
+    if(std::all_of(currentAnswer.begin(), currentAnswer.end(), [](int i){return i!='_';}))
     {
         GO = 1;
         win = 1;
@@ -273,6 +278,7 @@ void testGameApp::checkDead()
 string testGameApp::makeMessage(string progressForHostRender)
 {
     message.clear();
+    //sender.setup( host, sendPort, 1 );
     message.setAddress("/cinder/osc");
     message.addIntArg(playerID);
     message.addIntArg(answerLength);     //Use <- this variable to initialze the length of the boolean vector for the first time.
@@ -288,7 +294,7 @@ string testGameApp::makeMessage(string progressForHostRender)
     message.addStringArg(wrongAnswer);
     if(correct == 0)
     {
-        bodypart += 1;
+        //bodypart += 1;
         message.addIntArg(bodypart);
     }else
     {
@@ -297,10 +303,10 @@ string testGameApp::makeMessage(string progressForHostRender)
     compareAnswers();
     message.addIntArg(GO);
     
-    if(GO == 1)
-    {
-        message.addIntArg(win);
-    }
+    //if(GO == 1)
+    //{
+    message.addIntArg(win);
+    //}
     
     sender.sendMessage(message);
     
@@ -319,7 +325,7 @@ string testGameApp::makeMessage(string progressForHostRender)
     //    cout << "current Answer String: " << currentAnswerInString <<endl;
     //    cout << "wrong Answer: " << wrongAnswer <<endl;
     //    cout << "bodyPart: " << bodypart<<endl;
-    //    cout << "game over? " << GO <<endl;
+    cout << "game over? " << GO <<endl;
     cout << "--------------------------------------"<<endl;
     return progressForHostRender;
     
